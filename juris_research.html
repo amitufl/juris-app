@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juris | Academic Legal Research</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        juris: {
+                            navy: '#1B2a4e',
+                            bronze: '#9a6b38',
+                            parchment: '#f9f8f4',
+                            text: '#2d3748'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .tab-active { border-bottom: 2px solid #9a6b38; color: #1B2a4e; font-weight: 600; }
+    </style>
+</head>
+<body class="h-full bg-juris-parchment text-juris-text flex flex-col lg:flex-row overflow-hidden">
+
+    <aside class="w-full lg:w-20 bg-juris-navy flex lg:flex-col items-center justify-between lg:justify-start py-4 px-6 lg:px-0 flex-shrink-0 z-20">
+        <div class="text-juris-bronze text-2xl lg:mb-12">
+            <i class="ph-bold ph-columns"></i>
+        </div>
+        <nav class="flex lg:flex-col gap-8 text-blue-200/60">
+            <a href="#" onclick="showSearchView()" class="hover:text-juris-bronze transition text-juris-bronze active"><i class="ph-bold ph-magnifying-glass text-xl"></i></a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+       
+        <div id="search-view" class="flex-1 flex flex-col h-full overflow-y-auto p-8 lg:p-12">
+            <header class="max-w-4xl mx-auto w-full mb-12">
+                <h1 class="font-serif text-4xl text-juris-navy font-bold mb-2">Juris Discovery.</h1>
+                <p class="text-gray-500">Search the authoritative record of U.S. Supreme Court jurisprudence.</p>
+            </header>
+
+            <div class="max-w-4xl mx-auto w-full relative mb-12">
+                <i class="ph-bold ph-magnifying-glass absolute left-5 top-5 text-gray-400 text-xl"></i>
+                <input type="text" id="main-search-input" placeholder="Search (e.g., 'Free Speech')"
+                class="w-full bg-white border border-gray-200 rounded-xl py-4 pl-14 pr-4 text-lg shadow-sm focus:ring-2 focus:ring-juris-bronze outline-none font-serif transition">
+            </div>
+
+            <div id="results-container" class="max-w-4xl mx-auto w-full space-y-6 flex-1">
+                <div class="text-center text-gray-400 mt-10">Results will appear here...</div>
+            </div>
+        </div>
+
+        <div id="case-view" class="hidden flex-1 flex-col h-full overflow-hidden bg-white">
+            <header class="bg-juris-parchment px-8 py-8 border-b border-gray-200">
+                <button onclick="showSearchView()" class="flex items-center gap-2 text-sm text-gray-500 hover:text-juris-navy transition mb-4">
+                    <i class="ph-bold ph-arrow-left"></i> Back to Search
+                </button>
+                <h1 id="cv-title" class="font-serif text-4xl text-juris-navy font-bold mb-2">Case Title</h1>
+                <p id="cv-citation" class="text-gray-500 font-serif italic text-lg">Citation</p>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8 lg:px-16 lg:py-12 bg-white">
+                 <div class="max-w-3xl">
+                    <h3 class="font-serif text-2xl text-juris-navy mb-6">Facts of the Case</h3>
+                    <p id="cv-summary-text" class="text-lg leading-relaxed text-gray-700 font-serif mb-10">...</p>
+                   
+                    <div class="bg-blue-50/50 p-8 border-l-4 border-juris-navy rounded-r-lg">
+                         <h3 class="font-serif text-2xl text-juris-navy mb-4 flex items-center gap-3">
+                            <i class="ph-fill ph-gavel text-juris-bronze"></i> The Holding
+                        </h3>
+                        <p id="cv-holding-text" class="text-xl leading-relaxed text-juris-navy font-serif font-medium">...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <aside class="w-96 bg-white border-l border-gray-200 flex flex-col z-30 hidden lg:flex">
+        <header class="px-6 py-4 border-b border-gray-200 bg-juris-parchment">
+            <h2 class="font-serif font-bold text-juris-navy">Legal Assistant</h2>
+            <div class="flex items-center gap-1.5">
+                 <span class="block w-2 h-2 bg-green-500 rounded-full"></span>
+                <span id="chat-status" class="text-xs text-gray-500">Idle</span>
+            </div>
+        </header>
+
+        <div id="chat-history" class="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 no-scrollbar">
+            <div class="flex gap-3">
+                <div class="w-8 h-8 bg-juris-navy rounded flex-shrink-0 flex items-center justify-center mt-1">
+                    <i class="ph-fill ph-scales text-juris-bronze text-sm"></i>
+                </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-lg rounded-tl-none shadow-sm text-sm leading-relaxed">
+                    Select a case, and I will use the case file to answer your questions.
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <div class="relative flex items-center">
+                <input type="text" id="chat-input" placeholder="Select a case first..." disabled
+                    class="w-full bg-gray-100 border border-transparent rounded-lg py-3 pl-4 pr-12 text-sm outline-none transition">
+                <button onclick="sendMessage()" id="send-btn" disabled class="absolute right-2 p-2 text-juris-navy hover:text-juris-bronze transition">
+                    <i class="ph-fill ph-paper-plane-tilt text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let activeCaseId = null;
+        let activeCaseTitle = "";
+
+        // --- SEARCH ---
+        const searchInput = document.getElementById('main-search-input');
+        const resultsContainer = document.getElementById('results-container');
+
+        searchInput.addEventListener('keypress', async function (e) {
+            if (e.key === 'Enter') {
+                const query = searchInput.value;
+                if (!query) return;
+
+                resultsContainer.innerHTML = '<div class="text-center text-gray-500 p-10">Searching Archive...</div>';
+
+                try {
+                    const response = await fetch(`${API_URL}/search`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ query: query })
+                    });
+                    const cases = await response.json();
+                    renderResults(cases);
+                } catch (error) {
+                    console.error("Error:", error);
+                    resultsContainer.innerHTML = `<div class="text-red-500 p-10">Error: Could not connect to API.<br>Is uvicorn running?</div>`;
+                }
+            }
+        });
+
+        function renderResults(cases) {
+            resultsContainer.innerHTML = '';
+            if (!cases || cases.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-gray-500 p-10">No cases found. Try a broader term.</div>';
+                return;
+            }
+            cases.forEach(c => {
+                // Escape quotes for the onclick function
+                const safeTitle = c.title.replace(/'/g, "\\'");
+                const card = `
+                <div onclick="loadCaseView(${c.id}, '${safeTitle}', '${c.year}')" class="bg-white border border-gray-200 p-6 rounded-lg shadow-sm cursor-pointer hover:border-juris-bronze/50 hover:shadow-md transition group">
+                    <h3 class="font-serif text-2xl text-juris-navy group-hover:text-juris-bronze transition">${c.title}</h3>
+                    <p class="text-gray-500 font-serif italic mt-1">${c.year}</p>
+                    <p class="mt-4 text-gray-600 line-clamp-2">${c.summary}</p>
+                </div>`;
+                resultsContainer.innerHTML += card;
+            });
+        }
+
+        // --- VIEW CASE ---
+        function loadCaseView(id, title, year) {
+            activeCaseId = id;
+            activeCaseTitle = title;
+
+            // Switch Views
+            document.getElementById('search-view').classList.add('hidden');
+            document.getElementById('search-view').classList.remove('flex');
+            document.getElementById('case-view').classList.remove('hidden');
+            document.getElementById('case-view').classList.add('flex');
+
+            // Set Header Info
+            document.getElementById('cv-title').innerText = title;
+            document.getElementById('cv-citation').innerText = `${year} • Supreme Court`;
+            document.getElementById('cv-summary-text').innerText = "Loading case details...";
+            document.getElementById('cv-holding-text').innerText = "...";
+
+            // Trigger "AI Analysis" via Chat endpoint (Optional: You could build a separate endpoint for this)
+            // For now, let's just update the chat state
+            updateChatContextState();
+           
+            // NOTE: In a full app, you would fetch the full text here using /cases/{id}
+            // For now, we rely on the user asking the chat for details.
+        }
+
+        function showSearchView() {
+            document.getElementById('search-view').classList.remove('hidden');
+            document.getElementById('search-view').classList.add('flex');
+            document.getElementById('case-view').classList.add('hidden');
+            document.getElementById('case-view').classList.remove('flex');
+            activeCaseId = null;
+            updateChatContextState();
+        }
+
+        // --- CHAT ---
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatStatus = document.getElementById('chat-status');
+        const chatHistory = document.getElementById('chat-history');
+
+        function updateChatContextState() {
+            if (activeCaseId) {
+                chatInput.disabled = false;
+                sendBtn.disabled = false;
+                chatInput.placeholder = `Ask about ${activeCaseTitle}...`;
+                chatStatus.innerText = "Active: " + activeCaseTitle;
+                chatHistory.innerHTML += `
+                    <div class="flex gap-3 bot-message">
+                        <div class="w-8 h-8 bg-juris-navy rounded flex-shrink-0 flex items-center justify-center mt-1"><i class="ph-fill ph-scales text-juris-bronze text-sm"></i></div>
+                        <div class="bg-white border border-gray-200 p-4 rounded-lg rounded-tl-none shadow-sm text-sm">
+                            I have loaded <strong>${activeCaseTitle}</strong>. Ask me about the holding or arguments.
+                        </div>
+                    </div>`;
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            } else {
+                chatInput.disabled = true;
+                sendBtn.disabled = true;
+                chatInput.placeholder = "Select a case first...";
+                chatStatus.innerText = "Idle";
+            }
+        }
+
+        chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        async function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Add User Message
+            chatHistory.innerHTML += `
+                <div class="flex gap-3 flex-row-reverse">
+                    <div class="bg-juris-navy text-white p-4 rounded-lg rounded-tr-none shadow-sm text-sm max-w-[85%]">${text}</div>
+                </div>`;
+            chatInput.value = '';
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Add Loading
+            const loadingId = "loading-" + Date.now();
+            chatHistory.innerHTML += `<div id="${loadingId}" class="flex gap-3"><div class="w-8 h-8 bg-juris-navy rounded mt-1 flex items-center justify-center"><i class="ph-fill ph-scales text-juris-bronze text-sm"></i></div><div class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm text-sm">Thinking...</div></div>`;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ case_id: activeCaseId, question: text })
+                });
+                const data = await response.json();
+               
+                document.getElementById(loadingId).remove();
+               
+                // Add Bot Response
+                const formattedInfo = data.answer.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+                chatHistory.innerHTML += `
+                    <div class="flex gap-3 bot-message">
+                        <div class="w-8 h-8 bg-juris-navy rounded flex-shrink-0 flex items-center justify-center mt-1"><i class="ph-fill ph-scales text-juris-bronze text-sm"></i></div>
+                        <div class="bg-white border border-gray-200 p-4 rounded-lg rounded-tl-none shadow-sm text-sm leading-relaxed max-w-[90%]">
+                            ${formattedInfo}
+                        </div>
+                    </div>`;
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                chatHistory.innerHTML += `<div class="text-red-500 text-sm text-center p-2">Error connecting to server.</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
