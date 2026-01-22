@@ -8,11 +8,9 @@ from supabase import create_client, Client
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# 1. SETUP
 load_dotenv()
 app = FastAPI()
 
-# Allow frontend to talk to backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,41 +19,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Connect to Services
 supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
 openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class QueryRequest(BaseModel):
     query: str
 
-@app.get("/")
-def read_root():
-    return {"status": "Juris AI is running"}
+@app.get("/trending")
+def get_trending():
+    """Fetches 5 random cases from your actual DB to populate the sidebar"""
+    try:
+        # We fetch a few cases. Using a randomizer or just the latest ones.
+        response = supabase.table("cases").select("title, year, summary").limit(5).execute()
+        return response.data
+    except Exception as e:
+        print(f"Error fetching trending: {e}")
+        return []
 
 @app.post("/ask")
 def ask_juris(request: QueryRequest):
     user_query = request.query
-    print(f"🧠 Processing: {user_query}")
-
-    # STEP 1: EMBED THE USER'S QUESTION
-    # We convert "What are student rights?" into numbers
+    
+    # 1. Embed Query
     query_vector = openai.embeddings.create(
         input=[user_query],
         model="text-embedding-3-small"
     ).data[0].embedding
 
-    # STEP 2: SEARCH THE DATABASE (Semantic Search)
-    # We lowered the threshold to 0.1 to allow broader natural language matches
+    # 2. Search DB (Threshold 0.25 is the sweet spot)
     response = supabase.rpc("match_cases", {
         "query_embedding": query_vector,
-        "match_threshold": 0.1, 
+        "match_threshold": 0.25, 
         "match_count": 5
     }).execute()
     
     matches = response.data
 
-    # STEP 3: PREPARE CONTEXT FOR AI
-    # If no cases found, just tell the AI to rely on general knowledge (or say sorry)
+    # 3. Build Context
     context_text = ""
     if matches:
         for case in matches:
@@ -63,26 +63,35 @@ def ask_juris(request: QueryRequest):
     else:
         context_text = "No specific case law found in the provided database."
 
-    # STEP 4: GENERATE ANSWER (The "Chat" Part)
-    # We give the AI the user's question AND the cases we found.
-    system_prompt = """You are a legal research assistant. 
-    1. Answer the user's question using ONLY the provided case law context.
-    2. If the context contains relevant cases, cite them by name.
-    3. If the context is empty or irrelevant, politely say you don't have that information in your database.
-    4. Keep the answer concise and professional."""
+    # 4. Strict Formatting Prompt
+    system_prompt = """
+    You are a legal expert. Format your answer exactly like this:
+    
+    **Case Description**
+    [Brief history of what happened]
+
+    **The Two Sides**
+    * **Plaintiff:** [Their key argument]
+    * **Defendant:** [Their key argument]
+
+    **The Decision**
+    [Who won and the legal reasoning]
+
+    **Significance**
+    [Why this matters today]
+
+    If the user asks a general question (not about one specific case), summarize the legal principles found in the context cases.
+    """
 
     completion = openai.chat.completions.create(
-        model="gpt-4o-mini", # Fast and smart
+        model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Context:\n{context_text}\n\nUser Question: {user_query}"}
         ]
     )
     
-    ai_answer = completion.choices[0].message.content
-
-    # Return both the AI's written answer AND the raw case data for cards
     return {
-        "answer": ai_answer,
+        "answer": completion.choices[0].message.content,
         "sources": matches
     }
